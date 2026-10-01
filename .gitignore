@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Test Results and Reports
+playwright-report/
+test-results/
+.test-results/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Compiled TypeScript
+dist/
+build/
+
+# Node
+package-lock.json
+yarn.lock
+
+# HyperExecute
+.hyperexecute

@@ -1,0 +1,43 @@
+version: 0.1
+runson: ${matrix.os}
+concurrency: 2
+
+matrix:
+  os: [win, linux]
+
+env:
+  BASE_URL: https://www.testmuai.com/selenium-playground/
+  PLATFORM: ${matrix.os == 'win' ? 'Windows 10' : 'Linux'}
+  BROWSER_VERSION: latest
+  BUILD_NAME: Playwright-102-HyperExecute-Build
+
+cacheKey: '{{ checksum "package-lock.json" }}'
+cacheDirectories:
+  - node_modules
+
+pre:
+  - npm ci
+  - npx playwright install chromium
+
+testSuiteStep:
+  - name: "Run Simple Form Demo Tests"
+    command: npx playwright test tests/simple-form-demo.spec.ts --reporter=html,json
+  - name: "Run Drag Drop Slider Tests"
+    command: npx playwright test tests/drag-drop-slider.spec.ts --reporter=html,json
+  - name: "Run Input Form Submit Tests"
+    command: npx playwright test tests/input-form-submit.spec.ts --reporter=html,json
+
+post:
+  - echo "Test execution completed"
+
+mergeArtifacts: true
+
+uploadArtefacts:
+  - name: playwright-report
+    path:
+      - playwright-report/**
+      - test-results/**
+
+report: true
+jobLabel: Playwright-102-Tests
+project: Playwright-102-TestMUAI
