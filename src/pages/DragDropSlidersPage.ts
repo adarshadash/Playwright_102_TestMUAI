@@ -1,47 +1,48 @@
-import { Page } from '@playwright/test';
+import { Locator, Page } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class DragDropSlidersPage extends BasePage {
-  readonly sliderInput = 'input[type="range"]';
-
   constructor(page: Page) {
     super(page);
   }
 
-  async setSliderValue(targetValue: number): Promise<void> {
-    // Set via evaluate (direct DOM manipulation)
-    const value = await this.page.evaluate((val: number) => {
-      const sliderElement = document.querySelector('input[type="range"]') as HTMLInputElement;
-      if (sliderElement) {
-        sliderElement.value = val.toString();
-        sliderElement.dispatchEvent(new Event('input', { bubbles: true }));
-        sliderElement.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-      return sliderElement?.value || null;
-    }, targetValue);
-
-    await this.page.waitForTimeout(500);
+  private heading(label: string): Locator {
+    return this.page.getByRole('heading', { name: label, exact: true });
   }
 
-  async getRangeValue(): Promise<string | null> {
-    return await this.page.evaluate(() => {
-      // Look for the range output element - could be a span, div, or any element with the value
-      const rangeElements = Array.from(document.querySelectorAll('*')).filter((el: Element) => {
-        const text = el.textContent?.trim();
-        return text && /^\d+$/.test(text) && el.children.length === 0;
-      });
-
-      // Find the one closest to the slider
-      const slider = document.querySelector('input[type="range"]');
-      if (!slider || rangeElements.length === 0) return null;
-
-      // Get the first small element with just a number (likely the range output)
-      return rangeElements[rangeElements.length - 1]?.textContent || null;
-    });
+  /** The range input that follows the heading, e.g. "Default value 15". */
+  slider(label: string): Locator {
+    return this.heading(label).locator('xpath=following::input[@type="range"][1]');
   }
 
-  async verifyRangeValue(expectedValue: number): Promise<boolean> {
-    const value = await this.getRangeValue();
-    return value === expectedValue.toString();
+  /** The <output> element showing the value of the slider under the given heading. */
+  rangeValue(label: string): Locator {
+    return this.heading(label).locator('xpath=following::output[1]');
+  }
+
+  /** Drags the slider thumb with the mouse to `target`, then nudges with arrow keys for rounding. */
+  async dragSliderTo(label: string, target: number): Promise<void> {
+    const slider = this.slider(label);
+    await slider.scrollIntoViewIfNeeded();
+    const box = await slider.boundingBox();
+    if (!box) throw new Error(`Slider "${label}" is not visible`);
+
+    const min = Number(await slider.getAttribute('min'));
+    const max = Number(await slider.getAttribute('max'));
+    const current = Number(await slider.inputValue());
+
+    const xFor = (v: number) => box.x + ((v - min) / (max - min)) * box.width;
+    const y = box.y + box.height / 2;
+
+    await this.page.mouse.move(xFor(current), y);
+    await this.page.mouse.down();
+    await this.page.mouse.move(xFor(target), y, { steps: 20 });
+    await this.page.mouse.up();
+
+    for (let i = 0; i < 10; i++) {
+      const value = Number(await slider.inputValue());
+      if (value === target) break;
+      await slider.press(value < target ? 'ArrowRight' : 'ArrowLeft');
+    }
   }
 }

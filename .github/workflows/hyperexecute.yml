@@ -1,315 +1,37 @@
-name: HyperExecute - Playwright 102 Tests
+name: HyperExecute - Playwright 102
 
-# ============================================================================
-# Trigger Configuration
-# ============================================================================
 on:
   push:
-    branches: [main, develop, master]
+    branches: [main, master]
   pull_request:
-    branches: [main, develop, master]
-  schedule:
-    # Run daily at 2:00 AM UTC
-    - cron: '0 2 * * *'
+    branches: [main, master]
   workflow_dispatch:
 
-# ============================================================================
-# Environment Variables (available to all jobs)
-# ============================================================================
-env:
-  BASE_URL: https://www.testmuai.com/selenium-playground/
-  HEADLESS: true
-  CI: true
-  LOG_LEVEL: info
-  ENABLE_VIDEO: true
-  ENABLE_SCREENSHOTS: true
-  ENABLE_CONSOLE_LOGS: true
-  ENABLE_NETWORK_LOGS: true
-
 jobs:
-  # =========================================================================
-  # Setup & Validation Job
-  # =========================================================================
-  setup:
-    name: Setup & Validate
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18.x'
-          cache: 'npm'
-
-      - name: Validate Environment
-        run: |
-          echo "Node version: $(node --version)"
-          echo "npm version: $(npm --version)"
-          echo "Git branch: ${{ github.ref }}"
-          echo "Commit SHA: ${{ github.sha }}"
-          echo "Build number: ${{ github.run_number }}"
-
-  # =========================================================================
-  # HyperExecute Test Execution - Multiple Browser/OS Combinations
-  # =========================================================================
   hyperexecute:
-    name: HyperExecute - ${{ matrix.os }} - ${{ matrix.browser }}
     runs-on: ubuntu-latest
-    needs: setup
-
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [win, linux]
-        browser: [chromium, firefox]
-        exclude:
-          - os: linux
-            browser: firefox
-
+    env:
+      LT_USERNAME: ${{ secrets.LT_USERNAME }}
+      LT_ACCESS_KEY: ${{ secrets.LT_ACCESS_KEY }}
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18.x'
-          cache: 'npm'
-
-      - name: Display Test Configuration
+      - name: Download HyperExecute CLI
         run: |
-          echo "=========================================="
-          echo "Test Configuration"
-          echo "=========================================="
-          echo "OS: ${{ matrix.os }}"
-          echo "Browser: ${{ matrix.browser }}"
-          echo "Build: ${{ github.run_number }}"
-          echo "Branch: ${{ github.ref_name }}"
-          echo "Base URL: ${{ env.BASE_URL }}"
-          echo "Headless: ${{ env.HEADLESS }}"
-          echo "Video Capture: ${{ env.ENABLE_VIDEO }}"
-          echo "Screenshots: ${{ env.ENABLE_SCREENSHOTS }}"
-          echo "Console Logs: ${{ env.ENABLE_CONSOLE_LOGS }}"
-          echo "Network Logs: ${{ env.ENABLE_NETWORK_LOGS }}"
-          echo "=========================================="
+          curl -fsSL -o hyperexecute https://downloads.lambdatest.com/hyperexecute/linux/hyperexecute
+          chmod +x hyperexecute
 
-      # ===================================================================
-      # OPTION 1: Run tests locally with artifacts collection
-      # ===================================================================
-      - name: Install Dependencies
+      - name: Run tests on HyperExecute
         run: |
-          echo "Installing npm dependencies..."
-          npm ci --prefer-offline --no-audit
-          echo "Installing Playwright browsers..."
-          npx playwright install ${{ matrix.browser }}
-          npx playwright install-deps
-          echo "Creating artifacts directories..."
-          mkdir -p test-results playwright-report artifacts
+          ./hyperexecute --user "$LT_USERNAME" --key "$LT_ACCESS_KEY" \
+            --config hyperexecute.yaml \
+            --download-artifacts --download-artifacts-path artifacts \
+            --force-clean-artifacts
 
-      - name: Run Tests - ${{ matrix.os }} - ${{ matrix.browser }}
-        env:
-          BASE_URL: ${{ env.BASE_URL }}
-          HEADLESS: ${{ env.HEADLESS }}
-          CI: ${{ env.CI }}
-          LOG_LEVEL: ${{ env.LOG_LEVEL }}
-          ENABLE_VIDEO: ${{ env.ENABLE_VIDEO }}
-          ENABLE_SCREENSHOTS: ${{ env.ENABLE_SCREENSHOTS }}
-          ENABLE_CONSOLE_LOGS: ${{ env.ENABLE_CONSOLE_LOGS }}
-          ENABLE_NETWORK_LOGS: ${{ env.ENABLE_NETWORK_LOGS }}
-          BUILD_NAME: Playwright-102-GH-${{ github.run_number }}
-        run: |
-          echo "Starting test execution on ${{ matrix.os }} with ${{ matrix.browser }}..."
-          npm run test -- --reporter=html --reporter=json --reporter=junit 2>&1 | tee test-output.log
-          echo "Test execution completed"
-
-      # ===================================================================
-      # OPTION 2: Trigger HyperExecute via CLI (if HyperExecute is setup)
-      # Uncomment below and configure LT_USERNAME and LT_ACCESS_KEY secrets
-      # ===================================================================
-      # - name: Download HyperExecute CLI
-      #   run: |
-      #     wget https://downloads.lambdatest.com/hyperexecute/linux/hyperexecute
-      #     chmod +x hyperexecute
-      #     ./hyperexecute --version
-
-      # - name: Run HyperExecute Tests
-      #   env:
-      #     LT_USERNAME: ${{ secrets.LT_USERNAME }}
-      #     LT_ACCESS_KEY: ${{ secrets.LT_ACCESS_KEY }}
-      #   run: |
-      #     ./hyperexecute --user ${{ secrets.LT_USERNAME }} --key ${{ secrets.LT_ACCESS_KEY }} --config hyperexecute.yaml
-
-      # ===================================================================
-      # Artifact Management - Upload Test Results
-      # ===================================================================
-      - name: Collect Artifacts
-        if: always()
-        run: |
-          echo "Collecting test artifacts..."
-          mkdir -p artifacts/reports artifacts/videos artifacts/screenshots
-          cp -r playwright-report/* artifacts/reports/ 2>/dev/null || true
-          cp -r test-results/* artifacts/ 2>/dev/null || true
-          echo "Creating artifact archive..."
-          cd artifacts && zip -r test-artifacts-${{ matrix.os }}-${{ matrix.browser }}.zip . || true
-          cd ..
-          echo "Artifacts collected successfully"
-
-      - name: Upload Test Results Artifact
+      - name: Upload HyperExecute artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.os }}-${{ matrix.browser }}
-          path: |
-            test-results/
-            playwright-report/
-            test-output.log
-          retention-days: 30
-
-      - name: Upload Videos Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-videos-${{ matrix.os }}-${{ matrix.browser }}
-          path: test-results/videos/
-          retention-days: 7
-          if-no-files-found: ignore
-
-      - name: Upload Screenshots Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-screenshots-${{ matrix.os }}-${{ matrix.browser }}
-          path: test-results/screenshots/
-          retention-days: 7
-          if-no-files-found: ignore
-
-      - name: Upload Consolidated Artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: consolidated-artifacts-${{ matrix.os }}-${{ matrix.browser }}
+          name: hyperexecute-artifacts
           path: artifacts/
-          retention-days: 30
-
-      # ===================================================================
-      # Test Report Publishing
-      # ===================================================================
-      - name: Publish Test Report to GitHub
-        if: always()
-        uses: dorny/test-reporter@v1
-        with:
-          name: Test Report - ${{ matrix.os }} - ${{ matrix.browser }}
-          path: 'test-results/junit.xml'
-          reporter: 'java-junit'
-          fail-on-error: false
-
-  # =========================================================================
-  # Results Summary & Notifications
-  # =========================================================================
-  results:
-    name: Test Results Summary
-    runs-on: ubuntu-latest
-    needs: hyperexecute
-    if: always()
-
-    steps:
-      - name: Download All Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: all-artifacts
-
-      - name: Generate Summary Report
-        run: |
-          echo "## Test Execution Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Build Information" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build Number:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Test Scenarios Executed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Scenario 1: Simple Form Demo" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Scenario 2: Drag & Drop Sliders" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Scenario 3: Input Form Submit" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Execution Matrix" >> $GITHUB_STEP_SUMMARY
-          echo "- Windows 10 + Chromium" >> $GITHUB_STEP_SUMMARY
-          echo "- Ubuntu Linux + Chromium" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Artifacts Generated" >> $GITHUB_STEP_SUMMARY
-          echo "- 📊 HTML Reports" >> $GITHUB_STEP_SUMMARY
-          echo "- 📹 Test Videos (on-failure)" >> $GITHUB_STEP_SUMMARY
-          echo "- 📸 Screenshots (on-failure)" >> $GITHUB_STEP_SUMMARY
-          echo "- 📋 Console Logs" >> $GITHUB_STEP_SUMMARY
-          echo "- 🌐 Network Logs" >> $GITHUB_STEP_SUMMARY
-
-      - name: Slack Notification
-        if: always()
-        uses: slackapi/slack-github-action@v1.24.0
-        with:
-          payload: |
-            {
-              "text": "Playwright 102 Tests - Build #${{ github.run_number }}",
-              "blocks": [
-                {
-                  "type": "header",
-                  "text": {
-                    "type": "plain_text",
-                    "text": "🎭 Playwright 102 Test Results"
-                  }
-                },
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Status*\n${{ needs.hyperexecute.result }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Build*\n#${{ github.run_number }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Branch*\n${{ github.ref_name }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Author*\n${{ github.actor }}"
-                    }
-                  ]
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Executed On:*\n• Windows 10 + Chromium\n• Ubuntu Linux + Chromium"
-                  }
-                },
-                {
-                  "type": "actions",
-                  "elements": [
-                    {
-                      "type": "button",
-                      "text": {
-                        "type": "plain_text",
-                        "text": "View Artifacts"
-                      },
-                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                    }
-                  ]
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-        continue-on-error: true
+          if-no-files-found: ignore

@@ -1,29 +1,19 @@
-import { test, expect } from '../src/fixtures/test-fixtures';
-import { testData } from '../src/data/testData';
+import { test, expect } from '@fixtures/test-fixtures';
+import { testData } from '@data/testData';
 
-test('Drag & Drop Sliders - Complete Test Scenario 2', async ({ page, homePage, sliderPage }) => {
-  // Step 1: Open the TestMu AI Selenium Playground page
-  await homePage.navigate();
+const { sliderLabel, defaultValue, targetValue } = testData.dragDropSliders;
 
-  // Step 2: Click "Drag & Drop Sliders"
-  await homePage.clickDragDropSliders();
+test.describe('Scenario 2 - Drag & Drop Sliders', () => {
+  test(`drag "${sliderLabel}" slider to ${targetValue}`, async ({ homePage, sliderPage }) => {
+    await homePage.navigate();
+    await homePage.openDragDropSliders();
 
-  // Step 3: Validate slider exists and has correct range
-  const slider = page.locator('input[type="range"][min="0"][max="100"]').first();
-  const minValue = await slider.getAttribute('min');
-  const maxValue = await slider.getAttribute('max');
-  expect(minValue).toBe('0');
-  expect(maxValue).toBe('100');
+    await expect(sliderPage.slider(sliderLabel)).toHaveValue(String(defaultValue));
+    await expect(sliderPage.rangeValue(sliderLabel)).toHaveText(String(defaultValue));
 
-  // Step 4: Verify slider default value is 15
-  const { defaultValue, targetValue } = testData.dragDropSliders;
-  const initialRangeValue = await sliderPage.getRangeValue();
-  expect(initialRangeValue).toBe(defaultValue.toString());
+    await sliderPage.dragSliderTo(sliderLabel, targetValue);
 
-  // Step 5: Select the slider "Default value 15" and drag the bar to make it 95
-  await sliderPage.setSliderValue(targetValue);
-
-  // Step 6: Validate whether the range value shows 95
-  const rangeValue = await sliderPage.getRangeValue();
-  expect(rangeValue).toBe(targetValue.toString());
+    await expect(sliderPage.slider(sliderLabel)).toHaveValue(String(targetValue));
+    await expect(sliderPage.rangeValue(sliderLabel)).toHaveText(String(targetValue));
+  });
 });

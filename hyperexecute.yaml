@@ -1,216 +1,68 @@
-version: '0.1'
-
-# ============================================================================
-# EXECUTION CONFIGURATION
-# ============================================================================
-runson: ${matrix.os}
+version: 0.1
+runson: ${matrix.target}
 concurrency: 2
-globalTimeout: 3600
-testSuiteTimeout: 1800
-testRunnerTimeout: 300
+autosplit: true
+retryOnFailure: true
+maxRetries: 1
+globalTimeout: 90
+testSuiteTimeout: 30
+testSuiteStep: 30
+jobLabel: [playwright-102, ${matrix.target}]
+project: Playwright-102-TestMUAI
 
-# ============================================================================
-# MATRIX - Parallel execution on multiple browser/OS combinations
-# ============================================================================
+# Two OS / browser combinations run in parallel: Windows 10 + Chrome and Linux + Chrome.
+# `target` is exposed to commands as $target and selects the Playwright project (chrome-win / chrome-linux).
 matrix:
-  os: [win, linux]
-  browser: [chromium, firefox]
-  exclude:
-    - os: linux
-      browser: firefox
+  target: [win, linux]
 
-# ============================================================================
-# ENVIRONMENT VARIABLES - Injected from outside
-# Configure values from CI/CD pipeline or HyperExecute dashboard
-# ============================================================================
+# Injecting environment variables
 env:
-  BASE_URL: ${BASE_URL:https://www.testmuai.com/selenium-playground/}
-  PLATFORM: ${matrix.os == 'win' ? 'Windows 10' : 'Ubuntu Linux'}
-  BROWSER_VERSION: ${BROWSER_VERSION:latest}
-  BUILD_NAME: Playwright-102-HyperExecute-Build
-  HEADLESS: ${HEADLESS:true}
-  CI: ${CI:true}
-  LOG_LEVEL: ${LOG_LEVEL:info}
-  EXECUTION_ENV: hyperexecute
-  ENABLE_VIDEO: ${ENABLE_VIDEO:true}
-  ENABLE_SCREENSHOTS: ${ENABLE_SCREENSHOTS:true}
-  ENABLE_CONSOLE_LOGS: ${ENABLE_CONSOLE_LOGS:true}
-  ENABLE_NETWORK_LOGS: ${ENABLE_NETWORK_LOGS:true}
+  BASE_URL: https://www.testmuai.com/selenium-playground/
+  BUILD_NAME: Playwright-102-HyperExecute
+  BROWSER_VERSION: latest
+  HEADLESS: 'true'
+  ENABLE_VIDEO: 'true'
+  ENABLE_SCREENSHOTS: 'true'
+  ENABLE_CONSOLE_LOGS: 'true'
+  ENABLE_NETWORK_LOGS: 'true'
 
-# ============================================================================
-# SECRET MANAGEMENT
-# Manage sensitive data like passwords, API keys, tokens
-# Store in HyperExecute dashboard, reference via ${{ secrets.SECRET_NAME }}
-# ============================================================================
+# Secrets Management: create LT_USERNAME and LT_ACCESS_KEY under HyperExecute > Secrets in the dashboard.
+# They are never stored in the repo.
 secrets:
-  - TESTMUAI_USERNAME
-  - TESTMUAI_PASSWORD
-  - API_TOKEN
-  - SLACK_WEBHOOK_URL
+  LT_USERNAME: ${{ .secrets.LT_USERNAME }}
+  LT_ACCESS_KEY: ${{ .secrets.LT_ACCESS_KEY }}
 
-# ============================================================================
-# DEPENDENCY CACHING - For faster builds
-# Cache npm dependencies to avoid re-downloading
-# ============================================================================
+# Dependency caching: node_modules is restored on later runs while package-lock.json is unchanged.
 cacheKey: '{{ checksum "package-lock.json" }}'
 cacheDirectories:
   - node_modules
-  - ~/.npm
 
-# ============================================================================
-# PRE-STEPS - Run before test execution
-# Install dependencies, browsers, setup environment
-# ============================================================================
+# Pre steps
 pre:
-  - echo "================================"
-  - echo "HyperExecute Pre-Execution Setup"
-  - echo "================================"
-  - echo "OS: ${PLATFORM}"
-  - echo "Browser: ${matrix.browser}"
-  - echo "Node version:" && node --version
-  - echo "npm version:" && npm --version
-  - echo "Installing npm dependencies with caching..."
-  - npm ci --prefer-offline --no-audit
-  - echo "Installing Playwright browsers..."
-  - npx playwright install ${matrix.browser}
-  - npx playwright install-deps
-  - echo "Setting up directories..."
-  - mkdir -p test-results playwright-report artifacts logs
-  - echo "Pre-execution setup completed successfully"
+  - node --version
+  - npm ci --no-audit --no-fund
 
-# ============================================================================
-# TEST EXECUTION - Each scenario in separate step for better visibility
-# ============================================================================
-testSuiteStep:
-  - name: "Scenario 1 - Simple Form Demo Tests"
-    command: npx playwright test tests/simple-form-demo.spec.ts --reporter=html,json,junit --project=${matrix.browser}
+# One test file per task, executed in parallel on every matrix target
+testDiscovery:
+  type: raw
+  mode: dynamic
+  command: grep -rlE "test\(" tests --include=*.spec.ts
 
-  - name: "Scenario 2 - Drag Drop Slider Tests"
-    command: npx playwright test tests/drag-drop-slider.spec.ts --reporter=html,json,junit --project=${matrix.browser}
+testRunnerCommand: npx playwright test $test --project=chrome-$target
 
-  - name: "Scenario 3 - Input Form Submit Tests"
-    command: npx playwright test tests/input-form-submit.spec.ts --reporter=html,json,junit --project=${matrix.browser}
-
-# ============================================================================
-# POST-STEPS - Run after test execution
-# Generate reports, upload artifacts, cleanup
-# ============================================================================
+# Post steps (optional)
 post:
-  - echo "================================"
-  - echo "HyperExecute Post-Execution Steps"
-  - echo "================================"
-  - echo "Test execution completed on ${PLATFORM} with ${matrix.browser}"
-  - echo "Collecting artifacts..."
-  - mkdir -p artifacts/{reports,videos,screenshots,logs}
-  - cp -r playwright-report/* artifacts/reports/ 2>/dev/null || true
-  - cp -r test-results/* artifacts/ 2>/dev/null || true
-  - echo "Creating archive of all artifacts..."
-  - cd artifacts && zip -r test-artifacts-${matrix.os}-${matrix.browser}.zip . || true
-  - cd ..
-  - echo "Artifacts ready for download from HyperExecute dashboard"
-  - echo "Post-execution cleanup completed"
+  - echo "Run finished for $target"
 
-# ============================================================================
-# ARTIFACTS MANAGEMENT
-# Collect test execution artifacts for download from dashboard
-# ============================================================================
+# Artifacts Management: reports, videos, screenshots, traces and logs are collected from every
+# environment and merged into one downloadable bundle on the dashboard.
 mergeArtifacts: true
-
 uploadArtefacts:
-  - name: playwright-reports
+  - name: playwright-report
     path:
       - playwright-report/**
+  - name: test-results
+    path:
       - test-results/**
 
-  - name: test-artifacts
-    path:
-      - artifacts/**
-
-  - name: videos-and-screenshots
-    path:
-      - test-results/videos/**
-      - test-results/screenshots/**
-
-# ============================================================================
-# DESIRED CAPABILITIES
-# Configure browsers with logging enabled
-# Enables: network logs, video recording, screenshots, console logs
-# ============================================================================
-desiredCapabilities:
-  platformName: ${PLATFORM}
-  browserName: ${matrix.browser}
-  browserVersion: ${BROWSER_VERSION}
-  "goog:chromeOptions":
-    args:
-      - --disable-blink-features=AutomationControlled
-      - --no-first-run
-      - --no-default-browser-check
-      - --disable-extensions
-    excludeSwitches:
-      - enable-automation
-    useAutomationExtension: false
-
-  # Enable video recording for all tests
-  "moz:firefoxOptions":
-    args:
-      - --disable-extensions
-    prefs:
-      media.eme.enabled: true
-
-# Video and screenshot capture configuration
-videoCapture:
-  enabled: ${ENABLE_VIDEO}
-  resolution: 1920x1080
-  fps: 30
-  quality: high
-  onFailure: true
-  onSuccess: false
-
-screenshotCapture:
-  enabled: ${ENABLE_SCREENSHOTS}
-  onFailure: true
-  onSuccess: false
-
-# ============================================================================
-# LOGGING CONFIGURATION
-# Enable network logs and console logs
-# ============================================================================
-networkLogging:
-  enabled: ${ENABLE_NETWORK_LOGS}
-  captureHeaders: true
-  capturePayload: true
-  captureRequestBody: true
-  captureResponseBody: true
-
-consoleLogging:
-  enabled: ${ENABLE_CONSOLE_LOGS}
-  logLevel: ${LOG_LEVEL}
-  captureConsoleErrors: true
-  captureConsoleWarnings: true
-
-# ============================================================================
-# REPORTING
-# Generate and store test reports
-# ============================================================================
 report: true
-jobLabel: Playwright-102-Tests-${matrix.os}-${matrix.browser}
-project: Playwright-102-TestMUAI
-
-# ============================================================================
-# NOTIFICATIONS (Optional)
-# Send notifications on test completion
-# ============================================================================
-# notifications:
-#   slack:
-#     enabled: true
-#     webhookUrl: ${{ secrets.SLACK_WEBHOOK_URL }}
-#     onSuccess: true
-#     onFailure: true
-
-# ============================================================================
-# CLEANUP (Optional)
-# ============================================================================
-# cleanup:
-#   - npm run clean || true
-#   - rm -rf node_modules/.cache || true
-#   - rm -rf test-results/videos/* || true

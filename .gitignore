@@ -30,7 +30,6 @@ dist/
 build/
 
 # Node
-package-lock.json
 yarn.lock
 
 # HyperExecute
