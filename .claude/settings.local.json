@@ -5,7 +5,8 @@
       "Bash(timeout 180 npx playwright test --headed --reporter=list)",
       "Bash(timeout 120 npx playwright test tests/simple-form-demo.spec.ts --reporter=list)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(npx playwright *)"
     ]
   }
 }

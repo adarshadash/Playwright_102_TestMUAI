@@ -2,13 +2,12 @@ import { Page } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class InputFormSubmitPage extends BasePage {
-  readonly nameInput = 'input[name="name"]';
-  readonly emailInput = 'input[name="email"]';
-  readonly phoneInput = 'input[name="phone"]';
-  readonly addressInput = 'textarea[name="address"]';
-  readonly countrySelect = 'select[name="country"]';
-  readonly submitButton = 'button:has-text("Submit")';
-  readonly successMessage = 'p.success-message, .success-message, div:has-text("Thanks for contacting us")';
+  readonly nameInput = 'input[placeholder*="name"], input[type="text"]:nth-of-type(1)';
+  readonly emailInput = 'input[type="email"]';
+  readonly phoneInput = 'input[type="tel"], input[placeholder*="phone"]';
+  readonly addressInput = 'textarea';
+  readonly countrySelect = 'select';
+  readonly submitButton = 'button[type="submit"], button:has-text("Submit")';
 
   constructor(page: Page) {
     super(page);
