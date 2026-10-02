@@ -6,7 +6,7 @@ runson: ${matrix.os}
 # Matrix + autosplit: each discovered spec file runs as its own task on every matrix target.
 matrix:
   os: [win, linux]
-  browser: [chrome]
+  browser: [chromium]
 autosplit: true
 concurrency: 4
 parallelism: 2
