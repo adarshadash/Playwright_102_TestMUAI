@@ -1,38 +1,46 @@
-version: 0.1
-runson: ${matrix.target}
-concurrency: 2
+---
+version: "0.1"
+runson: ${matrix.os}
+
+# Two OS / browser combinations run in parallel: Windows + Chrome (latest) and Linux + Chrome (latest).
+# Matrix + autosplit: each discovered spec file runs as its own task on every matrix target.
+matrix:
+  os: [win, linux]
+  browser: [chrome]
 autosplit: true
+concurrency: 4
+parallelism: 2
 retryOnFailure: true
 maxRetries: 1
+
 globalTimeout: 90
 testSuiteTimeout: 30
 testSuiteStep: 30
-jobLabel: [playwright-102, ${matrix.target}]
-project: Playwright-102-TestMUAI
 
-# Two OS / browser combinations run in parallel: Windows 10 + Chrome and Linux + Chrome.
-# `target` is exposed to commands as $target and selects the Playwright project (chrome-win / chrome-linux).
-matrix:
-  target: [win, linux]
+jobLabel: [playwright-102, hyperexecute]
+project:
+  name: Playwright-102-TestMUAI
 
-# Injecting environment variables
+# Node 20 on every VM (Playwright needs 20+; the default image Node is 18)
+runtime:
+  language: node
+  version: "20"
+
+# Injected environment variables (read by playwright.config.ts / tests via process.env)
 env:
+  RUN_TARGET: hyperexecute          # launch Chrome on the HE VM itself, never cdp.lambdatest.com
+  CI: "true"
   BASE_URL: https://www.testmuai.com/selenium-playground/
   BUILD_NAME: Playwright-102-HyperExecute
-  BROWSER_VERSION: latest
-  HEADLESS: 'true'
-  ENABLE_VIDEO: 'true'
-  ENABLE_SCREENSHOTS: 'true'
-  ENABLE_CONSOLE_LOGS: 'true'
-  ENABLE_NETWORK_LOGS: 'true'
+  HEADLESS: "false"
+  ENABLE_VIDEO: "true"
+  ENABLE_SCREENSHOTS: "true"
 
-# Secrets Management: create LT_USERNAME and LT_ACCESS_KEY under HyperExecute > Secrets in the dashboard.
-# They are never stored in the repo.
-secrets:
-  LT_USERNAME: ${{ .secrets.LT_USERNAME }}
-  LT_ACCESS_KEY: ${{ .secrets.LT_ACCESS_KEY }}
+  # Taken from the environment of the machine that launches the CLI (never hard-coded in the repo).
+  LT_USERNAME: ${LT_USERNAME}
+  LT_ACCESS_KEY: ${LT_ACCESS_KEY}
 
-# Dependency caching: node_modules is restored on later runs while package-lock.json is unchanged.
+# Dependency caching
 cacheKey: '{{ checksum "package-lock.json" }}'
 cacheDirectories:
   - node_modules
@@ -40,22 +48,23 @@ cacheDirectories:
 # Pre steps
 pre:
   - node --version
-  - npm ci --no-audit --no-fund
+  - npm install --no-audit --no-fund
+  - npx playwright install chromium
 
-# One test file per task, executed in parallel on every matrix target
+# Test discovery: one spec file per task
 testDiscovery:
   type: raw
   mode: dynamic
-  command: grep -rlE "test\(" tests --include=*.spec.ts
+  command: node scripts/discover-tests.js
 
-testRunnerCommand: npx playwright test $test --project=chrome-$target
+# $test = the spec file HyperExecute assigned to this task; $browser = matrix value
+testRunnerCommand: npx playwright test $test --project=$browser
 
 # Post steps (optional)
 post:
-  - echo "Run finished for $target"
+  - echo Run finished
 
-# Artifacts Management: reports, videos, screenshots, traces and logs are collected from every
-# environment and merged into one downloadable bundle on the dashboard.
+# Artifacts Management: collected from every VM and merged into one download per artifact
 mergeArtifacts: true
 uploadArtefacts:
   - name: playwright-report
@@ -66,3 +75,7 @@ uploadArtefacts:
       - test-results/**
 
 report: true
+partialReports:
+  type: html
+  location: playwright-report
+  frameworkName: playwright

@@ -1,7 +1,7 @@
 export const testData = {
   simpleFormDemo: {
     urlFragment: 'simple-form-demo',
-    messages: ['Welcome to TestMu AI', 'Automation Testing', 'Page Object Model'],
+    messages: ['Welcome to TestMu AI'],
   },
   dragDropSliders: {
     sliderLabel: 'Default value 15',

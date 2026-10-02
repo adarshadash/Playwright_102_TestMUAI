@@ -1,10 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
-import { getWsEndpoint, isCloudRun } from './src/config/capabilities';
+import { getWsEndpoint } from './src/config/capabilities';
 
 dotenv.config();
 
-const cloud = isCloudRun();
+// RUN_TARGET = local | hyperexecute | lt-grid  (set explicitly; don't infer from credentials)
+const target = process.env.RUN_TARGET ?? 'local';
+const ltGrid = target === 'lt-grid';
 
 export default defineConfig({
   testDir: './tests',
@@ -19,27 +21,32 @@ export default defineConfig({
     ['junit', { outputFile: 'test-results/junit.xml' }],
     ['list'],
   ],
+  
   use: {
-    baseURL: process.env.BASE_URL || 'https://www.testmuai.com/selenium-playground/',
-    headless: process.env.HEADLESS !== 'false',
-    screenshot: 'on',
-    video: 'on',
-    trace: 'retain-on-failure',
-  },
+  baseURL: process.env.BASE_URL || 'https://www.testmuai.com/selenium-playground/',
+  headless: process.env.HEADLESS !== 'false',
+  screenshot: process.env.ENABLE_SCREENSHOTS === 'false' ? 'off' : 'on',
+  video: ltGrid || process.env.ENABLE_VIDEO === 'false' ? 'off' : 'on',
+  trace: 'retain-on-failure',
+},
 
-  projects: [
-    // Local runs
-    { name: 'local-chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'local-firefox', use: { ...devices['Desktop Firefox'] } },
-
-    // Cloud runs (HyperExecute / LambdaTest grid). Used only when LT_USERNAME and LT_ACCESS_KEY are set.
-    {
-      name: 'chrome-win',
-      use: { connectOptions: cloud ? { wsEndpoint: getWsEndpoint('Windows 10') } : undefined },
-    },
-    {
-      name: 'chrome-linux',
-      use: { connectOptions: cloud ? { wsEndpoint: getWsEndpoint('Linux') } : undefined },
-    },
-  ],
+  projects: ltGrid
+    ? [
+        // Remote LambdaTest Playwright grid (run from your laptop or a normal CI runner)
+        { name: 'grid-chrome-win', use: { connectOptions: { wsEndpoint: getWsEndpoint('Windows 10') } } },
+        { name: 'grid-chrome-mac', use: { connectOptions: { wsEndpoint: getWsEndpoint('macOS Sonoma') } } },
+      ]
+    : [
+        // Local, and HyperExecute (the HE machine *is* the Windows/Linux box)
+        // Installed Google Chrome locally; on HyperExecute the VM has no Chrome, so use Playwright's bundled Chromium
+        {
+          name: 'chrome',
+          use: {
+            ...devices['Desktop Chrome'],
+            ...(target === 'hyperexecute' ? {} : { channel: 'chrome' }),
+          },
+        },
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
+      ],
 });

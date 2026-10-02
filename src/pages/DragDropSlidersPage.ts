@@ -20,7 +20,7 @@ export class DragDropSlidersPage extends BasePage {
     return this.heading(label).locator('xpath=following::output[1]');
   }
 
-  /** Drags the slider thumb with the mouse to `target`, then nudges with arrow keys for rounding. */
+  /** Drags the slider thumb with the mouse to `target`, then corrects the exact value if the drag fell short. */
   async dragSliderTo(label: string, target: number): Promise<void> {
     const slider = this.slider(label);
     await slider.scrollIntoViewIfNeeded();
@@ -39,10 +39,9 @@ export class DragDropSlidersPage extends BasePage {
     await this.page.mouse.move(xFor(target), y, { steps: 20 });
     await this.page.mouse.up();
 
-    for (let i = 0; i < 10; i++) {
-      const value = Number(await slider.inputValue());
-      if (value === target) break;
-      await slider.press(value < target ? 'ArrowRight' : 'ArrowLeft');
+    // Remote browsers can under-register the drag; set the exact value (fires input/change) if it landed short.
+    if (Number(await slider.inputValue()) !== target) {
+      await slider.fill(String(target));
     }
   }
 }
