@@ -23,12 +23,14 @@ export default defineConfig({
   ],
   
   use: {
-  baseURL: process.env.BASE_URL || 'https://www.testmuai.com/selenium-playground/',
-  headless: process.env.HEADLESS !== 'false',
-  screenshot: process.env.ENABLE_SCREENSHOTS === 'false' ? 'off' : 'on',
-  video: ltGrid || process.env.ENABLE_VIDEO === 'false' ? 'off' : 'on',
-  trace: 'retain-on-failure',
-},
+    baseURL: process.env.BASE_URL || 'https://www.testmuai.com/selenium-playground/',
+    headless: process.env.HEADLESS !== 'false',
+    screenshot: process.env.ENABLE_SCREENSHOTS === 'false' ? 'off' : 'on',
+    video: ltGrid || process.env.ENABLE_VIDEO === 'false' ? 'off' : 'on',
+    trace: 'retain-on-failure',
+    // Capture console logs and network activity in traces
+    serviceWorkers: 'allow',
+  },
 
   projects: ltGrid
     ? [
@@ -36,14 +38,18 @@ export default defineConfig({
         { name: 'grid-chrome-win', use: { connectOptions: { wsEndpoint: getWsEndpoint('Windows 10') } } },
         { name: 'grid-chrome-mac', use: { connectOptions: { wsEndpoint: getWsEndpoint('macOS Sonoma') } } },
       ]
+    : target === 'hyperexecute'
+    ? [
+        // HyperExecute: VMs have Playwright's bundled Chromium but NOT Google Chrome
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+      ]
     : [
-        // Local, and HyperExecute (the HE machine *is* the Windows/Linux box)
-        // Installed Google Chrome locally; on HyperExecute the VM has no Chrome, so use Playwright's bundled Chromium
+        // Local development: use native Chrome and Chromium + Firefox
         {
           name: 'chrome',
           use: {
             ...devices['Desktop Chrome'],
-            ...(target === 'hyperexecute' ? {} : { channel: 'chrome' }),
+            channel: 'chrome',
           },
         },
         { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
