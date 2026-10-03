@@ -53,14 +53,8 @@ pre:
   - npm install --no-audit --no-fund
   - npx playwright install chromium
 
-# Test discovery: tell HyperExecute what tests exist
-testDiscovery:
-  type: raw
-  mode: dynamic
-  command: find tests -name "*.spec.ts" -type f | sort
-
-# Run all discovered tests together (autosplit: false = no test splitting)
-testRunnerCommand: npx playwright test --project=chromium
+# Run tests directly - no test discovery needed, just give the path
+testRunnerCommand: npx playwright test tests --project=chromium
 
 # Post steps
 post:
