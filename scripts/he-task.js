@@ -47,33 +47,10 @@ const run = spawnSync(
   [cli, 'test', spec, `--project=${project}`, `--output=${outputDir}`],
   {
     stdio: 'inherit',
-    env: {
-      ...process.env,
-      PLAYWRIGHT_JSON_OUTPUT_FILE: path.join(outputDir, 'results.json'),
-      PLAYWRIGHT_JUNIT_OUTPUT_FILE: path.join(outputDir, 'junit.xml'),
-    },
+    env: process.env,
   },
 );
 
 reportVideos(outputDir);
-
-// Copy/link results to root level so HyperExecute can parse them for dashboard reporting.
-// HyperExecute looks for test-results/results.json and test-results/junit.xml to
-// determine pass/fail and display in the dashboard. Keeping per-task files in
-// test-results/<slug>/ for traceability, but also providing root-level copies for HE parsing.
-try {
-  const fs = require('fs');
-  const resultsJson = path.join(outputDir, 'results.json');
-  const junitXml = path.join(outputDir, 'junit.xml');
-
-  if (fs.existsSync(resultsJson)) {
-    fs.copyFileSync(resultsJson, path.join('test-results', 'results.json'));
-  }
-  if (fs.existsSync(junitXml)) {
-    fs.copyFileSync(junitXml, path.join('test-results', 'junit.xml'));
-  }
-} catch (err) {
-  console.log(`[he-task] warning: could not copy results to root: ${err.message}`);
-}
 
 process.exit(run.status === null ? 1 : run.status);
