@@ -73,8 +73,8 @@ testRunnerCommand: npx playwright test $test --project=$platform
 post:
   # Display summary
   - echo "=== Test Execution Summary ==="
-  - "echo \"Build: ${BUILD_NAME}\""
-  - "echo \"Target: ${RUN_TARGET}\""
+  - echo "Build: ${BUILD_NAME}"
+  - echo "Target: ${RUN_TARGET}"
   
   # Show artifact status
   - |
