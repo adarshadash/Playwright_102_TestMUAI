@@ -31,7 +31,7 @@ const slug = [
   .join('__')
   .toLowerCase();
 
-const outputDir = path.posix.join('test-results', slug);
+const outputDir = path.join('test-results', slug);
 
 // playwright/cli is not in the package exports map, so go via its package.json.
 const cli = path.join(path.dirname(require.resolve('playwright/package.json')), 'cli.js');
@@ -49,8 +49,8 @@ const run = spawnSync(
     stdio: 'inherit',
     env: {
       ...process.env,
-      PLAYWRIGHT_JSON_OUTPUT_FILE: path.posix.join(outputDir, 'results.json'),
-      PLAYWRIGHT_JUNIT_OUTPUT_FILE: path.posix.join(outputDir, 'junit.xml'),
+      PLAYWRIGHT_JSON_OUTPUT_FILE: path.join(outputDir, 'results.json'),
+      PLAYWRIGHT_JUNIT_OUTPUT_FILE: path.join(outputDir, 'junit.xml'),
     },
   },
 );

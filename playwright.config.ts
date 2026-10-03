@@ -17,6 +17,8 @@ export default defineConfig({
   timeout: 60_000,
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    // Hardcoded paths here are overridden by PLAYWRIGHT_JSON_OUTPUT_FILE / PLAYWRIGHT_JUNIT_OUTPUT_FILE
+    // env vars set by he-task.js per-task wrapper to keep results from sibling tasks from overwriting
     ['json', { outputFile: 'test-results/results.json' }],
     ['junit', { outputFile: 'test-results/junit.xml' }],
     ['list'],
