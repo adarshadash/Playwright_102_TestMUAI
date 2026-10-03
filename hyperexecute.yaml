@@ -69,14 +69,12 @@ testDiscovery:
 # on every invocation, so tasks sharing a VM would otherwise delete each other's videos.
 testRunnerCommand: node scripts/he-task.js $test $browser
 
-# Post steps (optional)
+# Post steps (run after each task)
 post:
   - node scripts/report-videos.js test-results
   - node scripts/archive-reports.js
+  - node scripts/merge-results.js
   - echo Run finished
-
-# Global post step (run once after all tasks complete)
-globalPost: node scripts/merge-results.js
 
 # Artifacts Management: collected from every VM and merged into one download per artifact
 mergeArtifacts: true
