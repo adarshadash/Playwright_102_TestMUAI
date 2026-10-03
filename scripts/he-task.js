@@ -53,4 +53,9 @@ const run = spawnSync(
 
 reportVideos(outputDir);
 
-process.exit(run.status === null ? 1 : run.status);
+// Log explicit status for HyperExecute dashboard parsing
+const status = run.status === 0 ? 'PASSED' : 'FAILED';
+const exitCode = run.status === null ? 1 : run.status;
+console.log(`[he-task] status=${status} exitCode=${exitCode}`);
+
+process.exit(exitCode);
