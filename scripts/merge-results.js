@@ -8,18 +8,21 @@ const { execSync } = require('child_process');
 function mergeResults() {
   const testResultsDir = 'test-results';
 
+  console.log(`[merge-results] starting merge from ${testResultsDir}`);
+
   // Find all task output directories (test-results/slug/)
   let taskDirs = [];
   try {
     taskDirs = fs.readdirSync(testResultsDir)
       .filter(name => fs.statSync(path.join(testResultsDir, name)).isDirectory())
       .map(name => path.join(testResultsDir, name));
-  } catch {
-    console.log('[merge-results] test-results not found or unreadable');
+  } catch (err) {
+    console.log(`[merge-results] ERROR: test-results not found or unreadable: ${err.message}`);
     return;
   }
 
   console.log(`[merge-results] found ${taskDirs.length} task output directories`);
+  taskDirs.forEach(dir => console.log(`[merge-results]   - ${dir}`));
 
   if (taskDirs.length === 0) {
     console.log('[merge-results] no task directories found');
@@ -31,7 +34,11 @@ function mergeResults() {
   for (const taskDir of taskDirs) {
     const junitPath = path.join(taskDir, 'junit.xml');
     if (fs.existsSync(junitPath)) {
+      const size = fs.statSync(junitPath).size;
+      console.log(`[merge-results]   ✓ ${junitPath} (${size} bytes)`);
       junitFiles.push(junitPath);
+    } else {
+      console.log(`[merge-results]   ✗ ${junitPath} (not found)`);
     }
   }
 
@@ -93,9 +100,11 @@ print('[merge-results] merged junit.xml written to root')
     execSync(`python3 -c "${pythonScript.replace(/"/g, '\\"')}"`, {
       stdio: 'inherit',
     });
+    console.log('[merge-results] ✓ Python merge completed successfully');
   } catch (err) {
     // Fallback: if Python isn't available, try a simpler Node-based approach
-    console.log('[merge-results] Python merge failed, trying Node fallback');
+    console.log(`[merge-results] ⚠ Python merge failed: ${err.message}`);
+    console.log('[merge-results] falling back to Node-based merge');
     mergeResultsNode(junitFiles);
   }
 }
@@ -146,8 +155,14 @@ ${allTestSuites.map(s => '  ' + s).join('\n')}
 </testsuites>`;
 
   // Write to root junit.xml where HyperExecute expects it (resultFilePath: junit.xml)
-  fs.writeFileSync('junit.xml', merged);
-  console.log(`[merge-results] merged junit.xml written to root: ${totalTests} tests, ${totalFailures} failures, ${totalSkipped} skipped`);
+  try {
+    fs.writeFileSync('junit.xml', merged);
+    const stats = fs.statSync('junit.xml');
+    console.log(`[merge-results] ✓ junit.xml written to root (${stats.size} bytes)`);
+    console.log(`[merge-results] RESULT: ${totalTests} tests, ${totalFailures} failures, ${totalSkipped} skipped`);
+  } catch (err) {
+    console.log(`[merge-results] ERROR writing junit.xml: ${err.message}`);
+  }
 }
 
 if (require.main === module) {
