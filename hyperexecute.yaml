@@ -60,10 +60,11 @@ testDiscovery:
   command: find tests -name "*.spec.ts" -type f | sort
 
 # Test runner command: $spec injected from matrix.spec
-testRunnerCommand: npx playwright test $spec --project=chromium
+testRunnerCommand: node scripts/he-task.js $spec chromium
 
 # Post steps
 post:
+  - node scripts/report-videos.js test-results
   - echo "Test execution completed"
 
 # Artifacts
