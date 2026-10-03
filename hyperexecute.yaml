@@ -72,6 +72,7 @@ testRunnerCommand: node scripts/he-task.js $test $browser
 # Post steps (optional)
 post:
   - node scripts/report-videos.js test-results
+  - node scripts/archive-reports.js
   - echo Run finished
 
 # Artifacts Management: collected from every VM and merged into one download per artifact
@@ -83,6 +84,9 @@ uploadArtefacts:
   - name: test-results
     path:
       - test-results/**
+  - name: he-reports
+    path:
+      - he-reports/**
 
 report: true
 partialReports:
