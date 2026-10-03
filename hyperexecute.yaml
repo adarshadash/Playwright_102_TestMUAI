@@ -2,14 +2,14 @@
 version: "0.1"
 runson: ${matrix.os}
 
-# Matrix: OS × Spec = scenarios
-# Each combination gets its own task
+# Matrix: OS × Spec combinations create scenarios
 matrix:
   os: [win, linux]
   spec:
     - tests/simple-form-demo.spec.ts
     - tests/drag-drop-slider.spec.ts
     - tests/input-form-submit.spec.ts
+
 concurrency: 4
 parallelism: 2
 retryOnFailure: true
@@ -23,30 +23,26 @@ jobLabel: [playwright-102, hyperexecute]
 project:
   name: Playwright-102-TestMUAI
 
-# Node 20 on every VM (Playwright needs 20+; the default image Node is 18)
+# Node 20
 runtime:
   language: node
   version: "20"
 
-# Injected environment variables (read by playwright.config.ts / tests via process.env)
+# Environment variables
 env:
-  RUN_TARGET: hyperexecute          # Local Chromium on HyperExecute VM (not cdp.lambdatest.com)
+  RUN_TARGET: hyperexecute
   CI: "true"
   BASE_URL: https://www.testmuai.com/selenium-playground/
   BUILD_NAME: Playwright-102-HyperExecute
   HEADLESS: "false"
-
-  # Artifacts: video, screenshots, console logs, network logs (via traces)
   ENABLE_VIDEO: "true"
   ENABLE_SCREENSHOTS: "true"
   ENABLE_CONSOLE_LOGS: "true"
   ENABLE_NETWORK_LOGS: "true"
-
-  # Secrets: retrieved from HyperExecute Secrets dashboard at runtime (never hard-coded)
   LT_USERNAME: ${LT_USERNAME}
   LT_ACCESS_KEY: ${LT_ACCESS_KEY}
 
-# Dependency caching
+# Smart caching
 cacheKey: '{{ checksum "package-lock.json" }}'
 cacheDirectories:
   - node_modules
@@ -55,17 +51,22 @@ cacheDirectories:
 pre:
   - node --version
   - npm install --no-audit --no-fund
-  - npx playwright install chromium
+  - npx playwright@1.55.0 install --with-deps
+
+# Test discovery: find spec files to create scenarios
+testDiscovery:
+  type: raw
+  mode: static
+  command: find tests -name "*.spec.ts" -type f | sort
 
 # Test runner command: $spec injected from matrix.spec
-# Matrix handles test discovery implicitly
 testRunnerCommand: npx playwright test $spec --project=chromium
 
-# Post steps (optional)
+# Post steps
 post:
-  - echo Run finished
+  - echo "Test execution completed"
 
-# Artifacts Management: collected from every VM and merged into one download per artifact
+# Artifacts
 mergeArtifacts: true
 uploadArtefacts:
   - name: playwright-report
@@ -75,8 +76,12 @@ uploadArtefacts:
     path:
       - test-results/**
 
+# Reporting
 report: true
 partialReports:
-  type: html
-  location: playwright-report
   frameworkName: playwright
+  location: playwright-report
+  type: html
+
+junit: true
+resultFilePath: test-results/junit.xml
