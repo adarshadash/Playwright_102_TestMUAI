@@ -46,9 +46,9 @@ env:
   ENABLE_NETWORK_LOGS: "true"
 
   # Secrets: retrieved from HyperExecute Secrets dashboard at runtime (never hard-coded)
-  LT_USERNAME: '{{ .secrets.LT_USERNAME }}'
-  LT_ACCESS_KEY: '{{ .secrets.LT_ACCESS_KEY }}'
-
+  LT_USERNAME: ${LT_USERNAME}
+  LT_ACCESS_KEY: ${LT_ACCESS_KEY}
+  
 # Dependency caching
 cacheKey: '{{ checksum "package-lock.json" }}'
 cacheDirectories:
