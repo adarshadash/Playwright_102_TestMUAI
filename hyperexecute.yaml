@@ -75,9 +75,8 @@ post:
   - node scripts/archive-reports.js
   - echo Run finished
 
-# Global post steps (run once after all tasks complete)
-globalPost:
-  - node scripts/merge-results.js
+# Global post step (run once after all tasks complete)
+globalPost: node scripts/merge-results.js
 
 # Artifacts Management: collected from every VM and merged into one download per artifact
 mergeArtifacts: true
