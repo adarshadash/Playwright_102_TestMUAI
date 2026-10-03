@@ -1,13 +1,16 @@
 ---
 version: "0.1"
-# Browsers run on the LambdaTest grid, not on this VM, so the orchestrating VM's own OS does not
-# affect the result — the matrix picks the grid platform instead.
-runson: linux
+runson: ${matrix.os}
 
+# Hybrid mode (autosplit + matrix) requires matrix.os, so it stays — but browsers run on the
+# LambdaTest grid rather than on this VM, so the orchestrating OS does not affect the result.
+# One cheap orchestrator OS, and the grid platform lives on its own axis.
+#
 # Two OS / browser combinations run in parallel: Windows 10 Chrome and macOS Monterey Chrome.
-# One matrix value per grid platform, so each task opens exactly one grid session.
+# 1 os x 2 platforms = 2 combinations, so each task opens exactly one grid session.
 # Matrix + autosplit: each discovered spec file runs as its own task on every matrix target.
 matrix:
+  os: [linux]
   platform: [grid-chrome-win, grid-chrome-mac]
 autosplit: true
 concurrency: 4
