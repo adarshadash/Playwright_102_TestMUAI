@@ -93,3 +93,6 @@ partialReports:
   type: html
   location: playwright-report
   frameworkName: playwright
+
+# Result file path: tells HyperExecute where to find test results for dashboard reporting
+resultFilePath: test-results/junit.xml
