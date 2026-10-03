@@ -86,8 +86,8 @@ root.set('skipped', str(total_skipped))
 root.set('time', str(total_time))
 
 tree = ET.ElementTree(root)
-tree.write('test-results/junit.xml', encoding='utf-8', xml_declaration=True)
-print('[merge-results] merged junit.xml written to test-results/junit.xml')
+tree.write('junit.xml', encoding='utf-8', xml_declaration=True)
+print('[merge-results] merged junit.xml written to root')
 `;
 
     execSync(`python3 -c "${pythonScript.replace(/"/g, '\\"')}"`, {
@@ -145,8 +145,9 @@ function mergeResultsNode(junitFiles) {
 ${allTestSuites.map(s => '  ' + s).join('\n')}
 </testsuites>`;
 
-  fs.writeFileSync('test-results/junit.xml', merged);
-  console.log(`[merge-results] merged junit.xml written: ${totalTests} tests, ${totalFailures} failures, ${totalSkipped} skipped`);
+  // Write to root junit.xml where HyperExecute expects it (resultFilePath: junit.xml)
+  fs.writeFileSync('junit.xml', merged);
+  console.log(`[merge-results] merged junit.xml written to root: ${totalTests} tests, ${totalFailures} failures, ${totalSkipped} skipped`);
 }
 
 if (require.main === module) {
