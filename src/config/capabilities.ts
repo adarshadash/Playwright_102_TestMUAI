@@ -1,4 +1,11 @@
-export type CloudPlatform = 'Windows 10' | 'Linux';
+// LambdaTest's Playwright grid offers Windows and macOS only — it has no Linux platform.
+export type CloudPlatform = 'Windows 10' | 'MacOS Monterey';
+
+// LambdaTest selects the grid-side Playwright build from this, so it has to be the version
+// actually installed here rather than a literal that silently drifts out of date.
+const { version: installedPlaywrightVersion } = require('@playwright/test/package.json') as {
+  version: string;
+};
 
 /** True when LambdaTest/HyperExecute credentials are present, i.e. tests should run on the cloud grid. */
 export function isCloudRun(): boolean {
@@ -26,7 +33,7 @@ export function getCapabilities(platform: CloudPlatform) {
       visual: process.env.ENABLE_SCREENSHOTS !== 'false',
       terminal: true,
       w3c: true,
-      playwrightClientVersion: process.env.PW_CLIENT_VERSION || '1.63.0',
+      playwrightClientVersion: process.env.PW_CLIENT_VERSION || installedPlaywrightVersion,
     },
   };
 }

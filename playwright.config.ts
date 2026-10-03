@@ -34,9 +34,9 @@ export default defineConfig({
 
   projects: ltGrid
     ? [
-        // Remote LambdaTest Playwright grid (run from your laptop or a normal CI runner)
+        // Remote LambdaTest Playwright grid (orchestrated by HyperExecute)
         { name: 'grid-chrome-win', use: { connectOptions: { wsEndpoint: getWsEndpoint('Windows 10') } } },
-        { name: 'grid-chrome-mac', use: { connectOptions: { wsEndpoint: getWsEndpoint('macOS Sonoma') } } },
+        { name: 'grid-chrome-mac', use: { connectOptions: { wsEndpoint: getWsEndpoint('MacOS Monterey') } } },
       ]
     : target === 'hyperexecute'
     ? [
