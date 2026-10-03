@@ -53,18 +53,7 @@ pre:
   - npm install --no-audit --no-fund
   - npx playwright install chromium
 
-# Test discovery: find spec files so HyperExecute knows what tests exist
-testDiscovery:
-  type: raw
-  mode: dynamic
-  command: node scripts/discover-tests.js
-
-# autosplit: true creates scenarios, but we ignore $test variable to run ALL tests in each task
-# (inefficient but simple: each OS task runs all 3 specs, no result merging complexity)
-autosplit: true
-
-# testRunnerCommand ignores $test variable - runs all tests on each task
-# This means each task runs the same tests (redundant), but keeps result parsing simple
+# Run all tests together per OS (no test discovery, no autosplit)
 testRunnerCommand: npx playwright test --project=chromium
 
 # Post steps
