@@ -2,12 +2,14 @@
 version: "0.1"
 runson: ${matrix.os}
 
-# Two OS / browser combinations run in parallel: Windows + Chrome (latest) and Linux + Chrome (latest).
-# Matrix + autosplit: each discovered spec file runs as its own task on every matrix target.
+# Matrix: OS × Spec = scenarios
+# Each combination gets its own task
 matrix:
   os: [win, linux]
-  browser: [chromium]
-autosplit: true
+  spec:
+    - tests/simple-form-demo.spec.ts
+    - tests/drag-drop-slider.spec.ts
+    - tests/input-form-submit.spec.ts
 concurrency: 4
 parallelism: 2
 retryOnFailure: true
@@ -55,15 +57,17 @@ pre:
   - npm install --no-audit --no-fund
   - npx playwright install chromium
 
-# Test discovery: one spec file per task
+# Test discovery: static list of test scenarios
 testDiscovery:
   type: raw
-  mode: dynamic
-  command: node scripts/discover-tests.js
+  mode: static
+  testPaths:
+    - tests/simple-form-demo.spec.ts
+    - tests/drag-drop-slider.spec.ts
+    - tests/input-form-submit.spec.ts
 
-# $test = the spec file HyperExecute assigned to this task
-# Always use chromium on HyperExecute (bundled with Playwright; Chrome not installed on VMs)
-testRunnerCommand: npx playwright test $test --project=chromium
+# Test runner command: $spec injected from matrix.spec
+testRunnerCommand: npx playwright test $spec --project=chromium
 
 # Post steps (optional)
 post:
