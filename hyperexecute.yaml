@@ -93,3 +93,8 @@ partialReports:
   type: html
   location: playwright-report
   frameworkName: playwright
+
+# Explicitly configure result parsing so HyperExecute correctly reports test status
+# Use JUnit XML format which HyperExecute natively understands
+junit: true
+resultFilePath: test-results/junit.xml

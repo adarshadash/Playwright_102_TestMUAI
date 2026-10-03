@@ -1,8 +1,14 @@
 // Cross-platform test discovery for HyperExecute: prints one spec file path per line.
+// HyperExecute uses this to populate the test scenarios matrix.
 const fs = require('fs');
 const path = require('path');
 
 const dir = 'tests';
-fs.readdirSync(dir)
+const testFiles = fs.readdirSync(dir)
   .filter((file) => file.endsWith('.spec.ts'))
-  .forEach((file) => console.log(path.posix.join(dir, file)));
+  .map((file) => path.posix.join(dir, file))
+  .sort();
+
+// Output each test file on a separate line
+// HyperExecute will cross this with the matrix (os, browser) to create scenarios
+testFiles.forEach((file) => console.log(file));
