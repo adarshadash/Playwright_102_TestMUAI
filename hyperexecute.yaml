@@ -28,10 +28,10 @@ runtime:
 
 # Injected environment variables (read by playwright.config.ts / tests via process.env)
 env:
-  RUN_TARGET: hyperexecute          # Local Chromium on HyperExecute VM (not cdp.lambdatest.com)
+  RUN_TARGET: lt-grid               # Run on LambdaTest Playwright grid (cdp.lambdatest.com)
   CI: "true"
   BASE_URL: https://www.testmuai.com/selenium-playground/
-  BUILD_NAME: Playwright-102-HyperExecute
+  BUILD_NAME: Playwright-102-HyperExecute-LTGrid
   HEADLESS: "false"
 
   # Artifacts: video, screenshots, console logs, network logs (via traces)
@@ -62,8 +62,8 @@ testDiscovery:
   command: node scripts/discover-tests.js
 
 # $test = the spec file HyperExecute assigned to this task
-# Always use chromium on HyperExecute (bundled with Playwright; Chrome not installed on VMs)
-testRunnerCommand: npx playwright test $test --project=chromium
+# Run on LambdaTest grid: Windows 10 Chrome and Linux Chrome in parallel
+testRunnerCommand: npx playwright test $test --project=grid-chrome-win --project=grid-chrome-linux
 
 # Post steps (optional)
 post:
