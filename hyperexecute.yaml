@@ -2,16 +2,14 @@
 version: "0.1"
 runson: ${matrix.os}
 
-# Hybrid mode (autosplit + matrix) requires matrix.os, so it stays — but browsers run on the
-# LambdaTest grid rather than on this VM, so the orchestrating OS does not affect the result.
-# One cheap orchestrator OS, and the grid platform lives on its own axis.
-#
-# Two OS / browser combinations run in parallel: Windows 10 Chrome and macOS Monterey Chrome.
-# 1 os x 2 platforms = 2 combinations, so each task opens exactly one grid session.
+# Two browser/OS combinations run in parallel on the HyperExecute grid: Windows 10 Chromium and
+# Linux Chromium. runson resolves to each matrix.os in turn, so the browser launches on a real
+# Windows VM and a real Linux VM — the OS difference is the machine itself, not a remote capability.
+# 2 os x 1 browser = 2 combinations, so each task launches exactly one browser.
 # Matrix + autosplit: each discovered spec file runs as its own task on every matrix target.
 matrix:
-  os: [linux]
-  platform: [grid-chrome-win, grid-chrome-mac]
+  os: [win, linux]
+  browser: [chromium]
 autosplit: true
 concurrency: 4
 parallelism: 2
@@ -33,10 +31,10 @@ runtime:
 
 # Injected environment variables (read by playwright.config.ts / tests via process.env)
 env:
-  RUN_TARGET: lt-grid               # Run on LambdaTest Playwright grid (cdp.lambdatest.com)
+  RUN_TARGET: hyperexecute          # Launch the browser on the HE VM itself, never cdp.lambdatest.com
   CI: "true"
   BASE_URL: https://www.testmuai.com/selenium-playground/
-  BUILD_NAME: Playwright-102-HyperExecute-LTGrid
+  BUILD_NAME: Playwright-102-HyperExecute
   HEADLESS: "false"
 
   # Artifacts: video, screenshots, console logs, network logs (via traces)
@@ -66,8 +64,8 @@ testDiscovery:
   mode: dynamic
   command: node scripts/discover-tests.js
 
-# $test = the spec file HyperExecute assigned to this task; $platform = this task's grid project
-testRunnerCommand: npx playwright test $test --project=$platform
+# $test = the spec file HyperExecute assigned to this task; $browser = this task's matrix browser
+testRunnerCommand: npx playwright test $test --project=$browser
 
 # Post steps (optional)
 post:

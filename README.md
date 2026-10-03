@@ -16,9 +16,13 @@ npm test                      # local-chromium + local-firefox
 1. Dashboard > Secrets: create `LT_USERNAME` and `LT_ACCESS_KEY`.
 2. `./hyperexecute --user $LT_USERNAME --key $LT_ACCESS_KEY --config hyperexecute.yaml`
 
-`hyperexecute.yaml` runs Windows 10 Chrome and macOS Monterey Chrome on the LambdaTest grid in parallel
-(one grid session per task) and shows secrets, injected env vars,
-pre steps + dependency caching, post steps and merged artifacts. Network logs, video, console logs and screenshots
-are enabled in `src/config/capabilities.ts` (`network`, `video`, `console`, `visual`).
+`hyperexecute.yaml` runs two browser/OS combinations in parallel on the HyperExecute grid — Chromium on a
+Windows 10 VM and Chromium on a Linux VM — and shows secrets, injected env vars, pre steps + dependency
+caching, post steps and merged artifacts. Video, screenshots and traces are recorded by Playwright on each
+VM (`playwright.config.ts`) and collected into the merged artifacts.
+
+Set `RUN_TARGET=lt-grid` instead to connect out to the LambdaTest Playwright grid
+(`src/config/capabilities.ts`), where the browser runs on a LambdaTest machine rather than the HyperExecute VM.
+That grid offers Windows and macOS only — it has no Linux platform.
 
 GitHub Actions (`.github/workflows/hyperexecute.yml`) triggers the same run; add `LT_USERNAME` / `LT_ACCESS_KEY` as repo secrets.
