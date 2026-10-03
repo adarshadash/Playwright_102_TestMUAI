@@ -1,10 +1,16 @@
 ---
 version: "0.1"
-runson: ${matrix.os}
 
-# Simple 2-task setup: Windows and Linux, each running all tests in one execution
+# Matrix: each combination creates a scenario
+# os x spec = 6 scenarios (2 OS × 3 specs)
 matrix:
   os: [win, linux]
+  spec:
+    - tests/simple-form-demo.spec.ts
+    - tests/drag-drop-slider.spec.ts
+    - tests/input-form-submit.spec.ts
+
+runson: ${matrix.os}
 
 concurrency: 4
 parallelism: 2
@@ -19,7 +25,7 @@ jobLabel: [playwright-102, hyperexecute]
 project:
   name: Playwright-102-TestMUAI
 
-# Node 20 on every VM (Playwright needs 20+)
+# Node 20
 runtime:
   language: node
   version: "20"
@@ -31,14 +37,10 @@ env:
   BASE_URL: https://www.testmuai.com/selenium-playground/
   BUILD_NAME: Playwright-102-HyperExecute
   HEADLESS: "false"
-
-  # Artifacts: video, screenshots, console logs, network logs (via traces)
   ENABLE_VIDEO: "true"
   ENABLE_SCREENSHOTS: "true"
   ENABLE_CONSOLE_LOGS: "true"
   ENABLE_NETWORK_LOGS: "true"
-
-  # Secrets: retrieved from HyperExecute Secrets dashboard at runtime
   LT_USERNAME: ${LT_USERNAME}
   LT_ACCESS_KEY: ${LT_ACCESS_KEY}
 
@@ -53,14 +55,16 @@ pre:
   - npm install --no-audit --no-fund
   - npx playwright install chromium
 
-# Run tests directly - no test discovery needed, just give the path
-testRunnerCommand: npx playwright test tests --project=chromium
+# Test suites: $spec is injected from matrix.spec
+# Each scenario runs its specific spec file
+testSuites:
+  - npx playwright test $spec --project=chromium
 
 # Post steps
 post:
-  - echo "Tests completed"
+  - echo "Test completed"
 
-# Artifacts Management
+# Artifacts
 mergeArtifacts: true
 uploadArtefacts:
   - name: playwright-report
@@ -76,6 +80,5 @@ partialReports:
   location: playwright-report
   frameworkName: playwright
 
-# JUnit result parsing based on exit code
 junit: true
 resultFilePath: test-results/junit.xml
