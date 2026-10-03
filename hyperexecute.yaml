@@ -2,15 +2,10 @@
 version: "0.1"
 runson: ${matrix.os}
 
-# Two browser/OS combinations run in parallel on the HyperExecute grid: Windows 10 Chromium and
-# Linux Chromium. runson resolves to each matrix.os in turn, so the browser launches on a real
-# Windows VM and a real Linux VM — the OS difference is the machine itself, not a remote capability.
-# 2 os x 1 browser = 2 combinations, so each task launches exactly one browser.
-# Matrix + autosplit: each discovered spec file runs as its own task on every matrix target.
+# Simple 2-task setup: Windows and Linux, each running all tests in one execution
 matrix:
   os: [win, linux]
-  browser: [chromium]
-autosplit: true
+
 concurrency: 4
 parallelism: 2
 retryOnFailure: true
@@ -24,14 +19,14 @@ jobLabel: [playwright-102, hyperexecute]
 project:
   name: Playwright-102-TestMUAI
 
-# Node 20 on every VM (Playwright needs 20+; the default image Node is 18)
+# Node 20 on every VM (Playwright needs 20+)
 runtime:
   language: node
   version: "20"
 
-# Injected environment variables (read by playwright.config.ts / tests via process.env)
+# Environment variables
 env:
-  RUN_TARGET: hyperexecute          # Launch the browser on the HE VM itself, never cdp.lambdatest.com
+  RUN_TARGET: hyperexecute
   CI: "true"
   BASE_URL: https://www.testmuai.com/selenium-playground/
   BUILD_NAME: Playwright-102-HyperExecute
@@ -43,7 +38,7 @@ env:
   ENABLE_CONSOLE_LOGS: "true"
   ENABLE_NETWORK_LOGS: "true"
 
-  # Secrets: retrieved from HyperExecute Secrets dashboard at runtime (never hard-coded)
+  # Secrets: retrieved from HyperExecute Secrets dashboard at runtime
   LT_USERNAME: ${LT_USERNAME}
   LT_ACCESS_KEY: ${LT_ACCESS_KEY}
 
@@ -58,25 +53,14 @@ pre:
   - npm install --no-audit --no-fund
   - npx playwright install chromium
 
-# Test discovery: one spec file per task
-testDiscovery:
-  type: raw
-  mode: dynamic
-  command: node scripts/discover-tests.js
+# Run all tests in one execution (no autosplit, no test discovery)
+testRunnerCommand: npx playwright test --project=chromium
 
-# $test = the spec file HyperExecute assigned to this task; $browser = this task's matrix browser.
-# Wrapped so each task records into its own output directory: Playwright clears that directory
-# on every invocation, so tasks sharing a VM would otherwise delete each other's videos.
-testRunnerCommand: node scripts/he-task.js $test $browser
-
-# Post steps (run after each task)
+# Post steps
 post:
-  - node scripts/report-videos.js test-results
-  - node scripts/archive-reports.js
-  - node scripts/merge-results.js
-  - echo Run finished
+  - echo "Tests completed"
 
-# Artifacts Management: collected from every VM and merged into one download per artifact
+# Artifacts Management
 mergeArtifacts: true
 uploadArtefacts:
   - name: playwright-report
@@ -85,9 +69,6 @@ uploadArtefacts:
   - name: test-results
     path:
       - test-results/**
-  - name: he-reports
-    path:
-      - he-reports/**
 
 report: true
 partialReports:
@@ -95,6 +76,6 @@ partialReports:
   location: playwright-report
   frameworkName: playwright
 
-# Configure result parsing to read consolidated test results
+# JUnit result parsing based on exit code
 junit: true
-resultFilePath: junit.xml
+resultFilePath: test-results/junit.xml
