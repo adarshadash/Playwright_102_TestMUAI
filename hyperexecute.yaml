@@ -1,12 +1,14 @@
 ---
 version: "0.1"
-runson: ${matrix.os}
+# Browsers run on the LambdaTest grid, not on this VM, so the orchestrating VM's own OS does not
+# affect the result — the matrix picks the grid platform instead.
+runson: linux
 
-# Two OS / browser combinations run in parallel: Windows + Chrome (latest) and Linux + Chrome (latest).
+# Two OS / browser combinations run in parallel: Windows 10 Chrome and macOS Monterey Chrome.
+# One matrix value per grid platform, so each task opens exactly one grid session.
 # Matrix + autosplit: each discovered spec file runs as its own task on every matrix target.
 matrix:
-  os: [win, linux]
-  browser: [chromium]
+  platform: [grid-chrome-win, grid-chrome-mac]
 autosplit: true
 concurrency: 4
 parallelism: 2
@@ -61,9 +63,8 @@ testDiscovery:
   mode: dynamic
   command: node scripts/discover-tests.js
 
-# $test = the spec file HyperExecute assigned to this task
-# Run on LambdaTest grid: Windows 10 Chrome and Linux Chrome in parallel
-testRunnerCommand: npx playwright test $test --project=grid-chrome-win --project=grid-chrome-linux
+# $test = the spec file HyperExecute assigned to this task; $platform = this task's grid project
+testRunnerCommand: npx playwright test $test --project=$platform
 
 # Post steps (optional)
 post:

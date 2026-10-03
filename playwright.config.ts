@@ -36,7 +36,7 @@ export default defineConfig({
     ? [
         // Remote LambdaTest Playwright grid (orchestrated by HyperExecute)
         { name: 'grid-chrome-win', use: { connectOptions: { wsEndpoint: getWsEndpoint('Windows 10') } } },
-        { name: 'grid-chrome-linux', use: { connectOptions: { wsEndpoint: getWsEndpoint('Linux') } } },
+        { name: 'grid-chrome-mac', use: { connectOptions: { wsEndpoint: getWsEndpoint('MacOS Monterey') } } },
       ]
     : target === 'hyperexecute'
     ? [
