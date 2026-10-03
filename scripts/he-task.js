@@ -42,12 +42,18 @@ console.log(
   `[he-task] platform=${process.platform} HEADLESS=${process.env.HEADLESS} DISPLAY=${process.env.DISPLAY || '<unset>'}`,
 );
 
+const env = {
+  ...process.env,
+  PLAYWRIGHT_JSON_OUTPUT_FILE: path.join(outputDir, 'results.json'),
+  PLAYWRIGHT_JUNIT_OUTPUT_FILE: path.join(outputDir, 'junit.xml'),
+};
+
 const run = spawnSync(
   process.execPath,
   [cli, 'test', spec, `--project=${project}`, `--output=${outputDir}`],
   {
     stdio: 'inherit',
-    env: process.env,
+    env,
   },
 );
 
