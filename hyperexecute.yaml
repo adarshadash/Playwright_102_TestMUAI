@@ -64,11 +64,14 @@ testDiscovery:
   mode: dynamic
   command: node scripts/discover-tests.js
 
-# $test = the spec file HyperExecute assigned to this task; $browser = this task's matrix browser
-testRunnerCommand: npx playwright test $test --project=$browser
+# $test = the spec file HyperExecute assigned to this task; $browser = this task's matrix browser.
+# Wrapped so each task records into its own output directory: Playwright clears that directory
+# on every invocation, so tasks sharing a VM would otherwise delete each other's videos.
+testRunnerCommand: node scripts/he-task.js $test $browser
 
 # Post steps (optional)
 post:
+  - node scripts/report-videos.js test-results
   - echo Run finished
 
 # Artifacts Management: collected from every VM and merged into one download per artifact
