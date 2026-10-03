@@ -55,10 +55,17 @@ pre:
   - npm install --no-audit --no-fund
   - npx playwright install chromium
 
-# Test suites: $spec is injected from matrix.spec
-# Each scenario runs its specific spec file
-testSuites:
-  - npx playwright test $spec --project=chromium
+# Test discovery: static list of test scenarios
+testDiscovery:
+  type: raw
+  mode: static
+  testPaths:
+    - tests/simple-form-demo.spec.ts
+    - tests/drag-drop-slider.spec.ts
+    - tests/input-form-submit.spec.ts
+
+# Test runner command: $spec is injected from matrix.spec
+testRunnerCommand: npx playwright test $spec --project=chromium
 
 # Post steps
 post:
