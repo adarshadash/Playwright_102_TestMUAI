@@ -101,7 +101,7 @@ print('[merge-results] merged junit.xml written to test-results/junit.xml')
 }
 
 function mergeResultsNode(junitFiles) {
-  // Simple XML concatenation for testsuites
+  // XML parsing and merging using simple DOM-like approach
   let totalTests = 0;
   let totalFailures = 0;
   let totalSkipped = 0;
@@ -111,22 +111,28 @@ function mergeResultsNode(junitFiles) {
   for (const junitFile of junitFiles) {
     try {
       const content = fs.readFileSync(junitFile, 'utf-8');
-      // Simple regex-based parsing to extract testsuite elements
-      const suiteMatches = content.match(/<testsuite[^>]*>/g);
-      if (suiteMatches) {
-        for (const suiteMatch of suiteMatches) {
-          const testsMatch = suiteMatch.match(/tests="(\d+)"/);
-          const failuresMatch = suiteMatch.match(/failures="(\d+)"/);
-          const skippedMatch = suiteMatch.match(/skipped="(\d+)"/);
-          const timeMatch = suiteMatch.match(/time="([\d.]+)"/);
 
-          if (testsMatch) totalTests += parseInt(testsMatch[1]);
-          if (failuresMatch) totalFailures += parseInt(failuresMatch[1]);
-          if (skippedMatch) totalSkipped += parseInt(skippedMatch[1]);
-          if (timeMatch) totalTime += parseFloat(timeMatch[1]);
+      // Extract complete testsuite elements (opening tag to closing tag)
+      const suiteRegex = /<testsuite([^>]*)>([\s\S]*?)<\/testsuite>/g;
+      let match;
 
-          allTestSuites.push(suiteMatch);
-        }
+      while ((match = suiteRegex.exec(content)) !== null) {
+        const attributes = match[1];
+        const content = match[2];
+        const fullSuite = match[0];
+
+        // Extract metrics
+        const testsMatch = attributes.match(/tests="(\d+)"/);
+        const failuresMatch = attributes.match(/failures="(\d+)"/);
+        const skippedMatch = attributes.match(/skipped="(\d+)"/);
+        const timeMatch = attributes.match(/time="([\d.]+)"/);
+
+        if (testsMatch) totalTests += parseInt(testsMatch[1]);
+        if (failuresMatch) totalFailures += parseInt(failuresMatch[1]);
+        if (skippedMatch) totalSkipped += parseInt(skippedMatch[1]);
+        if (timeMatch) totalTime += parseFloat(timeMatch[1]);
+
+        allTestSuites.push(fullSuite);
       }
     } catch (err) {
       console.log(`[merge-results] error reading ${junitFile}: ${err.message}`);
@@ -136,7 +142,7 @@ function mergeResultsNode(junitFiles) {
   // Build consolidated junit.xml
   const merged = `<?xml version="1.0" encoding="UTF-8"?>
 <testsuites tests="${totalTests}" failures="${totalFailures}" skipped="${totalSkipped}" time="${totalTime}">
-  ${allTestSuites.join('\n  ')}
+${allTestSuites.map(s => '  ' + s).join('\n')}
 </testsuites>`;
 
   fs.writeFileSync('test-results/junit.xml', merged);
