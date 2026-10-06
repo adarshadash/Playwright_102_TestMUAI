@@ -46,9 +46,9 @@ env:
   ENABLE_NETWORK_LOGS: "true"
 
   # Secrets: retrieved from HyperExecute Secrets dashboard at runtime (never hard-coded)
-  LT_USERNAME: {{ .secrets.LT_USERNAME }}
-  LT_ACCESS_KEY: {{ .secrets.LT_ACCESS_KEY }}
-
+  LT_USERNAME: ${LT_USERNAME}
+  LT_ACCESS_KEY: ${LT_ACCESS_KEY}
+  
 # Dependency caching
 cacheKey: '{{ checksum "package-lock.json" }}'
 cacheDirectories:
@@ -73,8 +73,8 @@ testRunnerCommand: npx playwright test $test --project=$platform
 post:
   # Display summary
   - echo "=== Test Execution Summary ==="
-  - echo "Build: ${BUILD_NAME}"
-  - echo "Target: ${RUN_TARGET}"
+  - 'echo "Build: ${BUILD_NAME}"'
+  - 'echo "Target: ${RUN_TARGET}"'
   
   # Show artifact status
   - |
